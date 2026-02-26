@@ -25,7 +25,7 @@ function isSpamming(user) {
 function getBestMatch(input) {
     const text = input.toLowerCase();
     if (/(asesor|humano|persona|hablar con alguien|ayuda|vendedor|contacto)/.test(text)) return '5';
-    if (/(precio|cuanto cuesta|cotizar|cotizacion|presupuesto|valor)/.test(text)) return '1';
+    if (/(precio|cuanto cuesta|cotizeme|cotizar|cotizacion|valor)/.test(text)) return '1';
     if (/(mi pedido|donde esta|rastreo|compra|mi producto|llego)/.test(text)) return '2';
     if (/(catalogo|productos|lista|ver productos)/.test(text)) return '3';
     if (/(donde quedan|donde estan|ubicacion|direccion|horario|sede|local|tienda)/.test(text)) return '4';
@@ -41,7 +41,7 @@ async function askOpenRouter(question) {
                 messages: [
                     {
                         role: "system",
-                        content: "Eres Jorge, asesor experto de Sika Center Edificando. Responde de manera formal sobre productos Sika, Soudal, Mapei. Si es otro tema, pide amablemente que pregunten sobre construcción o marquen la opción 5."
+                        content: "Eres Jorge, asesor experto de Sika Center Edificando. Responde de manera formal sobre productos Sika, Soudal, Mapei, entre otras marcas. Si es otro tema, pide amablemente que pregunten sobre construcción o marquen la opción 5."
                     },
                     { role: "user", content: question }
                 ],
@@ -127,10 +127,10 @@ client.on('message', async (msg) => {
         }
 
         const menuOptions = {
-            '1': '📝 *COTIZACIONES*: Indícanos para que localidad lo requiere, quedo atento a tu respuesta.',
+            '1': '📝 *COTIZACIONES*: Indícanos para que localidad y/o ciudad lo requiere, quedo atento a tu respuesta.',
             '2': '📦 *PEDIDOS*: Envíanos tu número de orden o DNI.',
             '3': '🏗️ *PRODUCTOS*: https://sikacenter.com.pe/',
-            '4': '📍 *HORARIOS*: L-V 8:30am a 6pm, Sáb 8:30am a 1pm.',
+            '4': '📍 *UBICACIÓN*: Av. Masiche 2240, Trujillo L-V 8:30am a 6pm, Sáb 8:30am a 1pm.',
             '5': async () => {
                 userState.set(msg.from, 'awaiting_phone');
                 await msg.reply(
@@ -157,7 +157,7 @@ client.on('message', async (msg) => {
             await chat.sendStateTyping();
             const aiResponse = await askOpenRouter(userMessage);
             return client.sendMessage(msg.from, `🤖 *Asesor Jorge:*\n\n${aiResponse}`);
-        }
+        } 
 
     } catch (err) {
         console.error('💥 Error en mensaje:', err);
