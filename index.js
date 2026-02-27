@@ -13,7 +13,7 @@ const client = new Client({
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const lastMessageTime = new Map();
-const userState = new Map(); 
+const userState = new Map();
 
 function isSpamming(user) {
     const now = Date.now();
@@ -24,8 +24,8 @@ function isSpamming(user) {
 
 function getBestMatch(input) {
     const text = input.toLowerCase();
-    if (/(asesor|humano|persona|hablar con alguien|ayuda|vendedor|contacto)/.test(text)) return '5';
-    if (/(precio|cuanto cuesta|cotizeme|cotizar|cotizacion|valor)/.test(text)) return '1';
+    if (/(asesor|humano|persona|hablar con alguien|ayuda|vendedor|contacto|contactarme)/.test(text)) return '5';
+    if (/(precio|cuanto cuesta|coti|cotizeme|cotizar|cotizacion|cotización|valor)/.test(text)) return '1';
     if (/(mi pedido|donde esta|rastreo|compra|mi producto|llego)/.test(text)) return '2';
     if (/(catalogo|productos|lista|ver productos)/.test(text)) return '3';
     if (/(donde quedan|donde estan|ubicacion|direccion|horario|sede|local|tienda)/.test(text)) return '4';
@@ -55,7 +55,7 @@ async function askOpenRouter(question) {
 
             return response.data.choices[0].message.content;
         } catch {
-            console.log("⚠️ Error IA con modelo:", model);
+            console.error("⚠️ Error IA con modelo:", model);
         }
     }
     return "🤖 Estoy un poco lento ahora mismo. Escribe *5* para hablar con un asesor humano.";
@@ -65,8 +65,8 @@ async function notifyHumanAdvisor(client, realPhone, lastMessage) {
     const advisorJid = process.env.ASESOR_PHONE + "@c.us";
     const clean = realPhone.replace('+', '');
 
-    const text = 
-    `🚨 *Nuevo cliente solicita ASESORIA PERSONALIZADA*
+    const text =
+        `🚨 *Nuevo cliente solicita ASESORIA PERSONALIZADA*
 
     📞 *Cliente:* ${realPhone}
     🔗 *WhatsApp:* https://wa.me/${clean}
@@ -79,7 +79,7 @@ async function notifyHumanAdvisor(client, realPhone, lastMessage) {
 }
 
 client.on('qr', qr => qrcode.generate(qr, { small: true }));
-client.on('ready', () => console.log('✅ Jorge Sika Center Online (Privacidad Activada)'));
+client.on('ready', () => console.log('✅ Sika Center Online (Privacidad Activada)'));
 
 client.on('message', async (msg) => {
     try {
@@ -110,12 +110,12 @@ client.on('message', async (msg) => {
             return msg.reply('✅ Gracias. Un asesor humano te escribirá en breve 🙌');
         }
 
-        const triggers = ['hola', 'buenos dias', 'buenas tardes', 'información', 'info', 'sika', 'Hola *Sika Center*. Necesito más información sobre Sika Center https://sikacenter.com.pe/'];
+        const triggers = ['hola', 'Hola', 'buenos dias', 'buenas', 'buenas tardes', 'información', 'info', 'sika', 'Hola *Sika Center*. Necesito más información sobre Sika Center https://sikacenter.com.pe/'];
         if (triggers.some(t => userMessageLC.includes(t)) && userMessage.length < 20) {
             await chat.sendStateTyping();
             await delay(500);
             return msg.reply(
-            `👋 *Hola! Soy Jorge, asesor de Edificando*
+                `👋 *Hola! Soy Jorge, asesor de Edificando*
 
             1️⃣ *COTIZACIONES*  
             2️⃣ *PEDIDOS*  
@@ -130,7 +130,7 @@ client.on('message', async (msg) => {
             '1': '📝 *COTIZACIONES*: Indícanos para que localidad y/o ciudad lo requiere, quedo atento a tu respuesta.',
             '2': '📦 *PEDIDOS*: Envíanos tu número de orden o DNI.',
             '3': '🏗️ *PRODUCTOS*: https://sikacenter.com.pe/',
-            '4': '📍 *UBICACIÓN*: Av. Masiche 2240, Trujillo L-V 8:30am a 6pm, Sáb 8:30am a 1pm.',
+            '4': '📍 *UBICACIÓN*: Nos ubicamos en Av. Masiche 2240, Trujillo de L-V 8:30am a 6pm, Sáb 8:30am a 1pm.',
             '5': async () => {
                 userState.set(msg.from, 'awaiting_phone');
                 await msg.reply(
@@ -157,14 +157,14 @@ client.on('message', async (msg) => {
             await chat.sendStateTyping();
             const aiResponse = await askOpenRouter(userMessage);
             return client.sendMessage(msg.from, `🤖 *Asesor Jorge:*\n\n${aiResponse}`);
-        } 
+        }
 
     } catch (err) {
         console.error('💥 Error en mensaje:', err);
         try {
             await msg.reply('⚠️ Ocurrió un error. Escribe *hola* para ver el menú.');
-        } catch {}
+        } catch { }
     }
-}); 
+});
 
 client.initialize();
