@@ -14,6 +14,8 @@ const client = new Client({
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const lastMessageTime = new Map();
 const userState = new Map();
+const conversationMemory = new Map();
+const MAX_HISTORY = 15;
 
 function isSpamming(user) {
     const now = Date.now();
@@ -32,30 +34,44 @@ function getBestMatch(input) {
     return null;
 }
 
-async function askOpenRouter(question) {
+async function askOpenRouter(userId, question) {
     const models = ["google/gemini-2.0-flash-001", "mistralai/mistral-7b-instruct"];
+    const history = conversationMemory.get(userId) || [];
+    const messages = [
+        {
+            role: "system",
+            content: "Eres Jorge, asesor experto de Sika Center Edificando. Responde de manera formal sobre productos Sika, Soudal, Mapei, entre otras marcas. Si es otro tema, pide amablemente que pregunten sobre construcción o marquen la opción 5."
+        },
+        ...history,
+        { role: "user", content: question }
+    ];
+
     for (const model of models) {
         try {
-            const response = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-                model,
-                messages: [
-                    {
-                        role: "system",
-                        content: "Eres Jorge, asesor experto de Sika Center Edificando. Responde de manera formal sobre productos Sika, Soudal, Mapei, entre otras marcas. Si es otro tema, pide amablemente que pregunten sobre construcción o marquen la opción 5."
+            const response = await axios.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                { model, messages },
+                {
+                    headers: {
+                        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                        "Content-Type": "application/json"
                     },
-                    { role: "user", content: question }
-                ],
-            }, {
-                headers: {
-                    "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                    "Content-Type": "application/json"
-                },
-                timeout: 10000
-            });
+                    timeout: 10000
+                }
+            );
+            const answer = response.data.choices[0].message.content;
+            const newHistory = [
+                ...history,
+                { role: "user", content: question },
+                { role: "assistant", content: answer }
+            ].slice(-MAX_HISTORY);
 
-            return response.data.choices[0].message.content;
-        } catch {
-            console.error("⚠️ Error IA con modelo:", model);
+            conversationMemory.set(userId, newHistory);
+
+            return answer;
+
+        } catch (err) {
+            console.log("⚠️ Error IA con modelo:", model);
         }
     }
     return "🤖 Estoy un poco lento ahora mismo. Escribe *5* para hablar con un asesor humano.";
@@ -133,6 +149,8 @@ client.on('message', async (msg) => {
             '4': '📍 *UBICACIÓN*: Nos ubicamos en Av. Masiche 2240, Trujillo de L-V 8:30am a 6pm, Sáb 8:30am a 1pm.',
             '5': async () => {
                 userState.set(msg.from, 'awaiting_phone');
+                conversationMemory.delete(msg.from);
+
                 await msg.reply(
                     '👤 Para derivarte con un asesor humano, envíame tu *número de celular con código de país*.\n\nEjemplo: +51987654321'
                 );
@@ -155,7 +173,7 @@ client.on('message', async (msg) => {
 
         if (userMessage.length > 4) {
             await chat.sendStateTyping();
-            const aiResponse = await askOpenRouter(userMessage);
+            const aiResponse = await askOpenRouter(msg.from, userMessage);
             return client.sendMessage(msg.from, `🤖 *Asesor Jorge:*\n\n${aiResponse}`);
         }
 
